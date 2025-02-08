@@ -22,7 +22,7 @@ async function fetchWeatherData(cityName) {
         });
         return response.data;
     } catch (error) {
-        console.error(`Error fetching weather data for ${cityName}:`, error);
+        console.error(`Error fetching weather data for ${cityName}:`, error.response ? error.response.data : error.message);
         return null;
     }
 }
@@ -50,21 +50,31 @@ async function updateWeatherTable(districtId, weatherData) {
 }
 
 async function main() {
-    // Fetch all districts
-    const { data: districts, error } = await supabase
-        .from('districts')
-        .select('id, name');
+    try {
+        // Fetch all districts
+        const { data: districts, error } = await supabase
+            .from('districts')
+            .select('id, name');
 
-    if (error) {
-        console.error('Error fetching districts:', error);
-        return;
-    }
-
-    for (const district of districts) {
-        const weatherData = await fetchWeatherData(district.name);
-        if (weatherData) {
-            await updateWeatherTable(district.id, weatherData);
+        if (error) {
+            console.error('Error fetching districts:', error);
+            return;
         }
+
+        if (!districts || districts.length === 0) {
+            console.error('No districts found.');
+            return;
+        }
+
+        for (const district of districts) {
+            console.log(`Fetching weather data for district: ${district.name}`);
+            const weatherData = await fetchWeatherData(district.name);
+            if (weatherData) {
+                await updateWeatherTable(district.id, weatherData);
+            }
+        }
+    } catch (error) {
+        console.error('Error in main function:', error);
     }
 }
 
